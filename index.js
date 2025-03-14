@@ -1,4 +1,4 @@
-  // Scene setup
+// Scene setup
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -28,23 +28,24 @@ geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 // Custom particle texture
 function createParticleTexture() {
   const canvas = document.createElement('canvas');
-  canvas.width = 32;
-  canvas.height = 32;
+  canvas.width = 64; // Increased from 32 for sharper texture
+  canvas.height = 64; // Increased from 32
   const ctx = canvas.getContext('2d');
   ctx.beginPath();
-  ctx.arc(16, 16, 14, -Math.PI / 2, 0, false);
+  ctx.arc(32, 32, 28, -Math.PI / 2, 0, false); // Adjusted for new size
   ctx.strokeStyle = '#FF3D00';
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 6; // Slightly thicker for higher resolution
   ctx.stroke();
   return new THREE.CanvasTexture(canvas);
 }
 
 const material = new THREE.PointsMaterial({
-  size: 0.1,
+  size: 0.05, // Smaller size for sharper appearance (was 0.1)
   map: createParticleTexture(),
   color: 0xFF3D00,
   transparent: true,
-  depthWrite: false
+  depthWrite: false,
+  alphaTest: 0.5 // Added for crisper edges
 });
 const particleSystem = new THREE.Points(geometry, material);
 scene.add(particleSystem);
