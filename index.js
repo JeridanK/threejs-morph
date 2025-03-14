@@ -152,6 +152,105 @@ for (let i = 0; i < particleCount; i++) {
   spherePositions[idx + 2] = radius * Math.cos(phi);
 }
 
+// Question Mark Shape
+const questionMarkPositions = new Float32Array(particleCount * 3);
+
+// Parameters for question mark
+const qmHeight = 4;    // Overall height
+const qmWidth = 2;     // Overall width
+const qmThickness = 0.3; // Thickness of the stroke
+
+// Split particles: 70% for curve, 30% for dot
+const qmCurveCount = Math.floor(particleCount * 0.7);
+const qmDotCount = particleCount - qmCurveCount;
+
+for (let i = 0; i < particleCount; i++) {
+  const idx = i * 3;
+  let x, y, z;
+
+  if (i < qmCurveCount) {
+    // Curve part of question mark
+    const t = (i / qmCurveCount) * 2 * Math.PI * 0.75; // 3/4 of a circle
+    const radius = qmWidth * 0.5;
+    
+    // Parametric equation for question mark curve
+    x = radius * Math.cos(t);
+    y = qmHeight * 0.5 - radius * Math.sin(t) - qmHeight * 0.25;
+    z = 0;
+
+    // Adjust lower part to taper
+    if (t > Math.PI) {
+      x *= 0.5;
+      y += qmHeight * 0.25 * (t - Math.PI) / (Math.PI * 0.75);
+    }
+
+    // Add thickness
+    const angle = Math.random() * 2 * Math.PI;
+    const r = qmThickness * Math.sqrt(Math.random());
+    x += r * Math.cos(angle);
+    z += r * Math.sin(angle);
+  } else {
+    // Dot part of question mark
+    const dotRadius = qmThickness * 1.5;
+    const t = Math.random();
+    const angle = Math.random() * 2 * Math.PI;
+    const r = dotRadius * Math.sqrt(Math.random());
+    
+    x = r * Math.cos(angle);
+    y = -qmHeight * 0.25 + r * Math.sin(angle);
+    z = r * Math.sin(angle);
+  }
+
+  // Add slight noise
+  x += (Math.random() - 0.5) * 0.1;
+  y += (Math.random() - 0.5) * 0.1;
+  z += (Math.random() - 0.5) * 0.05;
+
+  questionMarkPositions[idx] = x;
+  questionMarkPositions[idx + 1] = y;
+  questionMarkPositions[idx + 2] = z;
+}
+
+// 3D Bar Chart Shape
+const barChartPositions = new Float32Array(particleCount * 3);
+
+// Bar chart parameters
+const numBars = 5;
+const barWidth = 0.8;
+const barDepth = 0.8;
+const maxHeight = 4;
+const barSpacing = 0.2;
+
+for (let i = 0; i < particleCount; i++) {
+  const idx = i * 3;
+  let x, y, z;
+
+  // Assign particles to bars
+  const barIndex = Math.floor(i / (particleCount / numBars)) % numBars;
+  
+  // Sample heights for each bar (you could make this dynamic)
+  const barHeights = [2.5, 3.5, 1.5, 4, 2];
+  const barHeight = barHeights[barIndex];
+
+  // Position within bar
+  x = (barIndex * (barWidth + barSpacing)) - ((numBars - 1) * (barWidth + barSpacing)) / 2;
+  y = (Math.random() * barHeight) - (barHeight / 2); // Center bars at origin
+  z = 0;
+
+  // Add width and depth
+  x += (Math.random() - 0.5) * barWidth;
+  z += (Math.random() - 0.5) * barDepth;
+
+  // Add slight noise
+  x += (Math.random() - 0.5) * 0.1;
+  y += (Math.random() - 0.5) * 0.1;
+  z += (Math.random() - 0.5) * 0.05;
+
+  barChartPositions[idx] = x;
+  barChartPositions[idx + 1] = y;
+  barChartPositions[idx + 2] = z;
+}
+
 // GSAP ScrollTrigger with smooth transitions
 gsap.registerPlugin(ScrollTrigger);
 
@@ -164,12 +263,14 @@ function lerpPositions(startPos, endPos, progress) {
   return result;
 }
 
-// Store all shape states
+// Store all shape states including new shapes
 const shapes = [
   originalPositions,
-  svgShapePositions, // Updated to torus with bisecting cylinder
+  svgShapePositions,
   torusPositions,
-  spherePositions
+  spherePositions,
+  questionMarkPositions,  // Added question mark shape
+  barChartPositions      // Added bar chart shape
 ];
 
 // Main animation timeline
@@ -184,7 +285,7 @@ const tl = gsap.timeline({
       const positions = particleSystem.geometry.attributes.position.array;
       
       // Calculate which segment we're in and local progress
-      const segmentCount = shapes.length - 1;
+      const segmentCount = shapes.length - 1; // Now 5 segments (6 shapes - 1)
       const segmentProgress = progress * segmentCount;
       const segmentIndex = Math.floor(segmentProgress);
       const localProgress = segmentProgress - segmentIndex;
@@ -192,7 +293,7 @@ const tl = gsap.timeline({
       // Ensure we don't go out of bounds
       if (segmentIndex >= segmentCount) {
         gsap.to(positions, {
-          endArray: shapes[segmentCount],
+          endArray: shapes[segmentCount], // Last shape will be barChartPositions
           duration: 0.1,
           onUpdate: () => particleSystem.geometry.attributes.position.needsUpdate = true
         });
@@ -213,7 +314,18 @@ const tl = gsap.timeline({
   }
 });
 
-// Resize handling
+// Optional: Add camera adjustments for better viewing of all shapes
+gsap.to(camera.position, {
+  z: 7, // Slightly further back to view larger shapes
+  scrollTrigger: {
+    trigger: "body",
+    start: "top top",
+    end: "bottom bottom",
+    scrub: 0.5
+  }
+});
+
+// Resize handling (unchanged)
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
